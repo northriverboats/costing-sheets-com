@@ -6,7 +6,7 @@ block_cipher = None
 a = Analysis(['main.py'],
              pathex=['C:\\Development\\costing-sheets-rec'],
              binaries=[],
-             datas=[('pickle.ico','.'),('.env','.')],
+             datas=[('sheets.ico','.'),('.env','.')],('CostingSheetTemplate.xlsx','.'),
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -25,4 +25,4 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=True , icon='pickle.ico')
+          console=True , icon='sheets.ico')
