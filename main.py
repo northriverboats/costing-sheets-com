@@ -16,6 +16,7 @@ with_options = " WITH OPTIONS"
 yellow = None
 yellow_fill = None
 status = None
+bundle_dir = "."
 
 rates = [
     # labor rate, column, row
@@ -88,6 +89,7 @@ def debug(level, text):
         print(text)
 
 def load_environment():
+    global bundle_dir
     if getattr(sys, 'frozen', False):
         bundle_dir = sys._MEIPASS # pylint: disable=no-member
     else:
@@ -242,7 +244,7 @@ def process_sheetname(ws, model, length):
     _ = ws.cell(column=3, row=3, value=value)
 
 def load_template(template_file):
-    wb = load_workbook(template_file)
+    wb = load_workbook(Path(bundle_dir) / template_file)
     ws = wb.active
     return [wb, ws]
 
