@@ -32,7 +32,7 @@ sections = [
     ["CANVAS", 74, 96, 0, 70, 102, 0.0],
     ["OUTFITTING", 106, 356, 0, 0, 0, 0.0],
     ["ENGINE & JET", 391, 401, 0, 387, 407, 0.0],
-    ["TRAILER", 411, 412, 0, 0, 0, 0.0],
+    ["TRAILER", 411, 412, 0, 407, 413, 0.0],
 ]
 
 
@@ -136,11 +136,11 @@ def process_part_highlighting(ws, length, part, mode, sheet_type, row):
 
 def process_by_parts(ws, boats, model, length, section, sheet_type, start, end, markup):
     offset = 0
-    for part in sorted(boats[model][section + ' PARTS'], key = lambda i: (i['VENDOR'], i['PART NUMBER'])):
-        mode = part[str(length) + ' RRS']
+    for part in sorted(boats[model][section + ' PARTS'], key = lambda i: (str(i['VENDOR']), str(i['PART NUMBER']))):
+        # mode = part[str(length) + ' RRS']
         qty = float(part[str(length) + ' QTY'])
         row = start + offset
-        if qty > 0 or (mode == 'Z' and sheet_type == with_options):
+        if qty > 0:
             ws.cell(column=1, row=row, value=part['VENDOR'])
             ws.cell(column=2, row=row, value=part['PART NUMBER'][1:-1])
             if part['DESCRIPTION'] != 'do not use':
@@ -150,7 +150,7 @@ def process_by_parts(ws, boats, model, length, section, sheet_type, start, end, 
             ws.cell(column=5, row=row, value=part['UOM'])
             ws.cell(column=6, row=row, value=float(part[str(length) + ' QTY']))
 
-            process_part_highlighting(ws, length, part, mode, sheet_type, row)
+            # process_part_highlighting(ws, length, part, mode, sheet_type, row)
             offset += 1
 
     delete_unused_section(ws, start + offset, end)
@@ -179,6 +179,7 @@ def recalc_sheet(ws, threshold, offset):
                 if formula != value:
                     cell.value = formula
 
+# Delete extra blank lines in section
 def delete_unused_section(ws, start_delete_row, end_delete_row):
     range_to_move = "A{}:I{}".format(
         end_delete_row,
@@ -211,6 +212,7 @@ def process_consumables(ws, boats, model, length, section, start_row, consumable
             consumable_row - 1,
             consumables
         )
+        print(section, consumable_row, formula)
         _ = ws.cell(column=consumable_column, row=consumable_row, value=formula)
   
 def process_by_section(ws, boats, model, length, type):
