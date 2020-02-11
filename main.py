@@ -32,7 +32,7 @@ sections = [
     ["CANVAS", 74, 96, 0, 70, 102, 0.0],
     ["OUTFITTING", 106, 356, 0, 0, 0, 0.0],
     ["ENGINE & JET", 391, 401, 0, 387, 407, 0.0],
-    ["TRAILER", 411, 412, 0, 407, 413, 0.0],
+    ["TRAILER", 411, 412, 0, 0, 0, 0.0],
 ]
 
 
@@ -120,6 +120,20 @@ def setup_styles():
     yellow = Color(colors.YELLOW)
     yellow_fill = PatternFill(fill_type='solid', start_color=yellow, end_color=yellow)
 
+# Delete extra blank lines in section
+def delete_unused_section(ws, start_delete_row, end_delete_row):
+    range_to_move = "A{}:I{}".format(
+        end_delete_row,
+        ws.max_row + 300
+    )
+    ws.move_range(
+        range_to_move,
+        rows=start_delete_row - end_delete_row,
+        cols=0,
+        translate=False
+    )
+    recalc_sheet(ws,start_delete_row, start_delete_row - end_delete_row)
+
 def process_labor_rate(ws, boats, model):
     for rate, column, row in rates:
         labor = float(boats[model][rate])
@@ -137,7 +151,6 @@ def process_part_highlighting(ws, length, part, mode, sheet_type, row):
 def process_by_parts(ws, boats, model, length, section, sheet_type, start, end, markup):
     offset = 0
     for part in sorted(boats[model][section + ' PARTS'], key = lambda i: (str(i['VENDOR']), str(i['PART NUMBER']))):
-        # mode = part[str(length) + ' RRS']
         qty = float(part[str(length) + ' QTY'])
         row = start + offset
         if qty > 0:
@@ -149,8 +162,6 @@ def process_by_parts(ws, boats, model, length, section, sheet_type, start, end, 
             ws.cell(column=4, row=row, value=price)
             ws.cell(column=5, row=row, value=part['UOM'])
             ws.cell(column=6, row=row, value=float(part[str(length) + ' QTY']))
-
-            # process_part_highlighting(ws, length, part, mode, sheet_type, row)
             offset += 1
 
     delete_unused_section(ws, start + offset, end)
@@ -179,20 +190,6 @@ def recalc_sheet(ws, threshold, offset):
                 if formula != value:
                     cell.value = formula
 
-# Delete extra blank lines in section
-def delete_unused_section(ws, start_delete_row, end_delete_row):
-    range_to_move = "A{}:I{}".format(
-        end_delete_row,
-        ws.max_row + 300
-    )
-    ws.move_range(
-        range_to_move,
-        rows=start_delete_row - end_delete_row,
-        cols=0,
-        translate=False
-    )
-    recalc_sheet(ws,start_delete_row, start_delete_row - end_delete_row)
-
 def delete_unused_materials_and_labor_rate(ws, section):
     if section == 'ENGINE & JET':
         return None
@@ -200,19 +197,17 @@ def delete_unused_materials_and_labor_rate(ws, section):
     for cell in cells:
         row = cell.row
         delete_unused_section(ws, row, row + 1)
-    pass
 
 def process_consumables(ws, boats, model, length, section, start_row, consumable_row):
     if consumable_row > 0:
         consumables = float(boats[model][section + ' CONSUMABLES'])
         formula = "=SUM({}{}:{}{})*{}".format(
             chr(64 + consumable_column),
-            start_row,
+            start_row - 1,
             chr(64 + consumable_column),
             consumable_row - 1,
             consumables
         )
-        print(section, consumable_row, formula)
         _ = ws.cell(column=consumable_column, row=consumable_row, value=formula)
   
 def process_by_section(ws, boats, model, length, type):
