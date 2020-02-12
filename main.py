@@ -294,6 +294,7 @@ def setup_markups(fabrication, paint, canvas, outfitting, engine, trailer):
 @click.command()
 @click.option('--verbose', '-v', default=0, type=int, help='verbosity level 0-3')
 @click.option('--machine', '-m', default=0, type=int, help='machine readable output, overrides --verbose')
+@click.option('--base', '-b', is_flag=True, help='merge base model MAIN with each sections parts')
 @click.option('--markup-fabrication', '-mf', default=0, type=click.FloatRange(-1, 1), help='markup 0.05 is 5%')
 @click.option('--markup-paint', '-mp', default=0, type=click.FloatRange(-1, 1), help='markup 0.05 is 5%')
 @click.option('--markup-canvas', '-mc', default=0, type=click.FloatRange(-1, 1), help='markup 0.05 is 5%')
@@ -306,6 +307,7 @@ def setup_markups(fabrication, paint, canvas, outfitting, engine, trailer):
 def main(
     verbose,
     machine,
+    base,
     markup_fabrication,
     markup_paint,
     markup_canvas,
