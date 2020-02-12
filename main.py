@@ -265,10 +265,18 @@ def process_by_length(boats, model, output_folder, template_file):
         process_boat(boats, model, length, output_folder, template_file, without_options)
         process_boat(boats, model, length, output_folder, template_file, with_options)
 
-def process_by_model(boats, output_folder, template_file):
-    for model in boats:
+def process_by_cabin(base, boats, model, output_folder, template_file):
+    for cabin in [x for x in boats if model in x]:
+        if not base and "MAIN" in cabin:
+            continue
+        debug(1, '  {}'.format(cabin))
+
+def process_by_model(base, boats, output_folder, template_file):
+    # get model name by finding MAIN
+    for model in [x[:-5] for x in boats if 'MAIN' in x]:
         debug(1, '{}'.format(model))
-        process_by_length(boats, model, output_folder, template_file)
+        process_by_cabin(base, boats, model, output_folder, template_file)
+        # process_by_length(base, boats, model, output_folder, template_file)
 
 def setup_debug(verbose, machine):
     global dbg, status
@@ -327,7 +335,7 @@ def main(
 
     boats = unpickle_boats(pickle_folder)
     setup_styles()
-    process_by_model(boats, output_folder, template_file)
+    process_by_model(base, boats, output_folder, template_file)
 
 
 if __name__ == "__main__":
