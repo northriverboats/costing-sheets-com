@@ -210,9 +210,10 @@ def process_consumables(ws, boats, model, length, section, start_row, consumable
         )
         _ = ws.cell(column=consumable_column, row=consumable_row, value=formula)
   
-def process_by_section(ws, boats, model, length, type):
+def process_by_section(ws, base, boats, model, length, type):
+    # future home of dealing with merged parts from MAIN
     for section, start_row, end_row, consumable_row, start_delete_row, end_delete_row, markup in sections[::-1]:
-        debug(3, '    {}'.format(section))
+        debug(3, '      {}'.format(section))
 
         number_of_parts = len(boats[model][section + ' PARTS'])
         if number_of_parts == 0 and start_delete_row > 0:
@@ -222,22 +223,25 @@ def process_by_section(ws, boats, model, length, type):
             process_consumables(ws, boats, model, length, section, start_row, consumable_row)
             process_by_parts(ws, boats, model, length, section, type, start_row, end_row, markup)
 
-def generate_filename(folder, model, length, sheet_type):
-    return folder + "\\Parts Costing {}' {} 2020{}.xlsx".format(length, model.upper(), sheet_type)
+def generate_filename(folder, base, model, length, sheet_type):
+    tag = sheet_type
+    if base:
+        tag += " with Hours"
+    return folder + "\\Parts Costing {}' {} 2020{}.xlsx".format(length, model.upper(), tag)
 
 def create_folder_if_needed(folder):
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-def save_spreadsheet(wb, model, length, sheet_type, output_folder):
+def save_spreadsheet(wb, base, model, length, sheet_type, output_folder):
     folder = output_folder + "\\" + model.upper()
     create_folder_if_needed(folder)
-    file_name = generate_filename(folder, model, length, sheet_type)
+    file_name = generate_filename(folder, base, model, length, sheet_type)
     wb.save(file_name)
 
 def process_sheetname(ws, model, length):
     value = "{}' {}".format(length, model)
-    debug(2,"  {}".format(length))
+    debug(2,"    {}".format(length))
     _ = ws.cell(column=3, row=3, value=value)
 
 def load_template(template_file):
@@ -250,33 +254,32 @@ def set_print_range(ws):
     print_area = "A1:I{}".format(max_row)
     ws.print_area = print_area
 
-def process_boat(boats, model, length, output_folder, template_file, sheet_type):
+def process_boat(base, boats, model_name, model, length, output_folder, template_file, sheet_type):
     wb, ws = load_template(template_file)
     
     process_sheetname(ws, model, length)
     process_labor_rate(ws, boats, model)
-    process_by_section(ws, boats, model, length, sheet_type)
+    process_by_section(ws, base, boats, model, length, sheet_type)
     set_print_range(ws)
 
-    save_spreadsheet(wb, model, length, sheet_type, output_folder)
+    save_spreadsheet(wb, base, model, length, sheet_type, output_folder)
 
-def process_by_length(boats, model, output_folder, template_file):
+def process_by_length(base, boats, model_name, model, output_folder, template_file):
     for length in boats[model]["BOAT SIZES"]:
-        process_boat(boats, model, length, output_folder, template_file, without_options)
-        process_boat(boats, model, length, output_folder, template_file, with_options)
+        process_boat(base, boats, model_name, model, length, output_folder, template_file, without_options)
 
-def process_by_cabin(base, boats, model, output_folder, template_file):
-    for cabin in [x for x in boats if model in x]:
-        if not base and "MAIN" in cabin:
+def process_by_cabin(base, boats, model_name, output_folder, template_file):
+    for model in [x for x in boats if model_name in x]:
+        if not base and "MAIN" in model:
             continue
-        debug(1, '  {}'.format(cabin))
+        debug(1, '  {}'.format(model))
+        process_by_length(base, boats, model_name, model, output_folder, template_file)
 
 def process_by_model(base, boats, output_folder, template_file):
     # get model name by finding MAIN
-    for model in [x[:-5] for x in boats if 'MAIN' in x]:
-        debug(1, '{}'.format(model))
-        process_by_cabin(base, boats, model, output_folder, template_file)
-        # process_by_length(base, boats, model, output_folder, template_file)
+    for model_name in [x[:-5] for x in boats if 'MAIN' in x]:
+        debug(1, '{}'.format(model_name))
+        process_by_cabin(base, boats, model_name, output_folder, template_file)
 
 def setup_debug(verbose, machine):
     global dbg, status
