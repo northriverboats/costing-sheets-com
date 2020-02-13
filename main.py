@@ -32,7 +32,7 @@ sections = [
     ["CANVAS", 74, 96, 0, 70, 102, 0.0],
     ["OUTFITTING", 106, 356, 0, 0, 0, 0.0],
     ["ENGINE & JET", 391, 401, 0, 387, 407, 0.0],
-    ["TRAILER", 411, 412, 0, 0, 0, 0.0],
+    ["TRAILER", 411, 411, 0, 0, 0, 0.0],
 ]
 
 
@@ -80,9 +80,11 @@ class Status():
 """
 Levels
 0 = no output
-1 = minimal output
-2 = verbose outupt
-3 = very verbose outupt
+1 = show model/cabin
+2 = show lengths
+3 = show sections
+4 = show part merges
+5 = show part adds
 """
 def debug(level, text):
     if dbg > (level -1):
@@ -210,18 +212,20 @@ def process_consumables(ws, boats, model, length, section, start_row, consumable
         )
         _ = ws.cell(column=consumable_column, row=consumable_row, value=formula)
 
-def  add_to_section_parts(parts, part):
+def  add_to_section_parts(parts, part, msg):
     # implictly passing reference to parts list
     if float(part['QTY']) == 0.0:
         return
     # add to current item if it exists
     found_items = [x for x in parts if x['PART NUMBER'] == part['PART NUMBER']]
     if found_items:
+        debug(4, '        Now Merging {}: {}'.format(msg, part['PART NUMBER']))
         found_items[0]['QTY'] = float(found_items[0]['QTY']) + float(part['QTY'])
     else:
+        debug(5, '        Now adding {}: {}'.format(msg, part['PART NUMBER']))
         parts.append(part)
 
-def parts_list_for_section(parts, boats, model, length, section):
+def parts_list_for_section(parts, boats, model, length, section, msg):
     # implictly passing reference to parts list
     for master_part in boats[model][section + ' PARTS']:
         part = {x: y for x, y in master_part.items() if x in [
@@ -234,14 +238,15 @@ def parts_list_for_section(parts, boats, model, length, section):
         ]}
         part['QTY'] = master_part[str(length) + ' QTY']
         part['TOTAL'] = master_part[str(length) + ' TOTAL']
-        add_to_section_parts(parts, part)
+        add_to_section_parts(parts, part, msg)
 
 def process_by_section(ws, base, boats, model_name, model, length, sheet_type):
     for section, start_row, end_row, consumable_row, start_delete_row, end_delete_row, markup in sections[::-1]:
         debug(3, '      {}'.format(section))
         parts = []  # implictly passing reference to parts list
-        parts_list_for_section(parts, boats, model, length, section)
-        parts_list_for_section(parts, boats, model_name + ' MAIN', length, section)
+        parts_list_for_section(parts, boats, model, length, section, "part")
+        if not base:
+            parts_list_for_section(parts, boats, model_name + ' MAIN', length, section, "main")
         number_of_parts = len(parts)
         if number_of_parts == 0 and start_delete_row > 0:
             delete_unused_section(ws, start_delete_row, end_delete_row)
@@ -252,8 +257,8 @@ def process_by_section(ws, base, boats, model_name, model, length, sheet_type):
 
 def generate_filename(folder, base, model, length, sheet_type):
     tag = sheet_type
-    if base:
-        tag += " with Hours"
+    # if base:
+    #   tag += " with Hours"
     return folder + "\\Parts Costing {}' {} 2020{}.xlsx".format(length, model.upper(), tag)
 
 def create_folder_if_needed(folder):
