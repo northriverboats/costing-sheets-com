@@ -20,10 +20,10 @@ bundle_dir = "."
 
 rates = [
     # labor rate, column, row
-    ["FABRICATION LABOR RATE", 7, 428],
-    ["PAINT LABOR RATE", 7, 429],
-    ["CANVAS LABOR RATE", 7, 430],
-    ["OUTFITTING LABOR RATE", 7, 431],
+    ["FABRICATION", 7, 428],
+    ["PAINT", 7, 429],
+    ["CANVAS", 7, 430],
+    ["OUTFITTING", 7, 431],
 ]
 sections = [
     # Section, start, end, consumable, start-del, end-del, markup
@@ -136,9 +136,14 @@ def delete_unused_section(ws, start_delete_row, end_delete_row):
     )
     recalc_sheet(ws,start_delete_row, start_delete_row - end_delete_row)
 
-def process_labor_rate(ws, boats, model):
+def process_labor_rate_hours(ws, boats, model, length):
     for rate, column, row in rates:
-        labor = float(boats[model][rate])
+        labor = float(boats[model][rate + " LABOR RATE"])
+        hours = boats[model][rate + " " + str(length) + " HOURS"]
+        if hours == "#N/A":
+            hours = 0.0
+        else:
+            hours = float(hours)
         _ = ws.cell(column=column, row=row, value=labor)
 
 def process_part_highlighting(ws, length, part, mode, sheet_type, row):
@@ -290,7 +295,7 @@ def process_boat(base, boats, model_name, model, length, output_folder, template
     wb, ws = load_template(template_file)
     
     process_sheetname(ws, model, length)
-    process_labor_rate(ws, boats, model)
+    process_labor_rate_hours(ws, boats, model, length)
     process_by_section(ws, base, boats, model_name, model, length, sheet_type)
     set_print_range(ws)
 
