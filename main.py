@@ -148,10 +148,10 @@ def process_part_highlighting(ws, length, part, mode, sheet_type, row):
         ws.cell(row=row, column=1).fill = yellow_fill
         ws.cell(row=row, column=2).fill = yellow_fill
 
-def process_by_parts(ws, boats, model, length, section, sheet_type, start, end, markup):
+def process_by_parts(ws, length, parts, start, end, markup):
     offset = 0
-    for part in sorted(boats[model][section + ' PARTS'], key = lambda i: (str(i['VENDOR']), str(i['PART NUMBER']))):
-        qty = float(part[str(length) + ' QTY'])
+    for part in sorted(parts, key = lambda i: (str(i['VENDOR']), str(i['PART NUMBER']))):
+        qty = float(part['QTY'])
         row = start + offset
         if qty > 0:
             ws.cell(column=1, row=row, value=part['VENDOR'])
@@ -161,7 +161,7 @@ def process_by_parts(ws, boats, model, length, section, sheet_type, start, end, 
             price = float(part['PRICE']) + float(part['PRICE']) * markup
             ws.cell(column=4, row=row, value=price)
             ws.cell(column=5, row=row, value=part['UOM'])
-            ws.cell(column=6, row=row, value=float(part[str(length) + ' QTY']))
+            ws.cell(column=6, row=row, value=qty)
             offset += 1
 
     delete_unused_section(ws, start + offset, end)
@@ -209,19 +209,46 @@ def process_consumables(ws, boats, model, length, section, start_row, consumable
             consumables
         )
         _ = ws.cell(column=consumable_column, row=consumable_row, value=formula)
-  
-def process_by_section(ws, base, boats, model, length, type):
-    # future home of dealing with merged parts from MAIN
+
+def  add_to_section_parts(parts, part):
+    # implictly passing reference to parts list
+    if float(part['QTY']) == 0.0:
+        return
+    # add to current item if it exists
+    found_items = [x for x in parts if x['PART NUMBER'] == part['PART NUMBER']]
+    if found_items:
+        found_items[0]['QTY'] = float(found_items[0]['QTY']) + float(part['QTY'])
+    else:
+        parts.append(part)
+
+def parts_list_for_section(parts, boats, model, length, section):
+    # implictly passing reference to parts list
+    for master_part in boats[model][section + ' PARTS']:
+        part = {x: y for x, y in master_part.items() if x in [
+            'PART NUMBER',
+            'DESCRIPTION',
+            'UOM',
+            'PRICE',
+            'VENDOR',
+            'VENDOR PART'
+        ]}
+        part['QTY'] = master_part[str(length) + ' QTY']
+        part['TOTAL'] = master_part[str(length) + ' TOTAL']
+        add_to_section_parts(parts, part)
+
+def process_by_section(ws, base, boats, model_name, model, length, sheet_type):
     for section, start_row, end_row, consumable_row, start_delete_row, end_delete_row, markup in sections[::-1]:
         debug(3, '      {}'.format(section))
-
-        number_of_parts = len(boats[model][section + ' PARTS'])
+        parts = []  # implictly passing reference to parts list
+        parts_list_for_section(parts, boats, model, length, section)
+        parts_list_for_section(parts, boats, model_name + ' MAIN', length, section)
+        number_of_parts = len(parts)
         if number_of_parts == 0 and start_delete_row > 0:
             delete_unused_section(ws, start_delete_row, end_delete_row)
             delete_unused_materials_and_labor_rate(ws, section)
         else:
             process_consumables(ws, boats, model, length, section, start_row, consumable_row)
-            process_by_parts(ws, boats, model, length, section, type, start_row, end_row, markup)
+            process_by_parts(ws, length, parts, start_row, end_row, markup)
 
 def generate_filename(folder, base, model, length, sheet_type):
     tag = sheet_type
@@ -259,7 +286,7 @@ def process_boat(base, boats, model_name, model, length, output_folder, template
     
     process_sheetname(ws, model, length)
     process_labor_rate(ws, boats, model)
-    process_by_section(ws, base, boats, model, length, sheet_type)
+    process_by_section(ws, base, boats, model_name, model, length, sheet_type)
     set_print_range(ws)
 
     save_spreadsheet(wb, base, model, length, sheet_type, output_folder)
