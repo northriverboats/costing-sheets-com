@@ -145,6 +145,7 @@ def process_labor_rate_hours(ws, boats, model, length):
         else:
             hours = float(hours)
         _ = ws.cell(column=column, row=row, value=labor)
+        _ = ws.cell(column=column-1, row=row, value=hours)
 
 def process_part_highlighting(ws, length, part, mode, sheet_type, row):
     if sheet_type == without_options:
